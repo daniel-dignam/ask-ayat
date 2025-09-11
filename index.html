@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>A Question for You ❤️</title>
+  <style>
+    :root {
+      --bg: #fff8f8;
+      --yes: #22c55e; /* green */
+      --no: #ef4444;  /* red */
+      --radius: 14px;
+      --shadow: 0 10px 30px rgba(0,0,0,.08);
+    }
+
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      display: grid;
+      place-items: center;
+      background: var(--bg);
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      color: #111827;
+    }
+
+    .card {
+      width: min(680px, 92vw);
+      background: white;
+      border-radius: 24px;
+      box-shadow: var(--shadow);
+      padding: clamp(16px, 4vw, 28px);
+      text-align: center;
+    }
+
+    h1 {
+      font-size: clamp(22px, 5vw, 34px);
+      line-height: 1.2;
+      margin: 0 0 14px;
+    }
+    p.sub { color: #6b7280; margin: 0 0 22px; font-size: clamp(14px, 3.3vw, 16px); }
+
+    .buttons {
+      display: flex;
+      justify-content: center;
+      gap: clamp(12px, 3.8vw, 22px);
+      flex-wrap: wrap;
+      margin: 18px 0 8px;
+    }
+
+    button {
+      border: 0;
+      border-radius: var(--radius);
+      padding: clamp(12px, 3.5vw, 16px) clamp(18px, 5vw, 26px);
+      font-size: clamp(16px, 4.4vw, 22px);
+      font-weight: 700;
+      color: white;
+      cursor: pointer;
+      transition: transform .25s ease, filter .25s ease, box-shadow .25s ease;
+      box-shadow: 0 6px 18px rgba(0,0,0,.06);
+      will-change: transform;
+    }
+
+    button.yes { background: var(--yes); }
+    button.no { background: var(--no); }
+    button:active { transform: scale(.98); }
+
+    .gif-container {
+      margin-top: 18px;
+      display: none; /* visible when we have gifs */
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 12px;
+    }
+
+    .gif-container img {
+      max-width: 240px;
+      width: 100%;
+      height: auto;
+      border-radius: 12px;
+      box-shadow: var(--shadow);
+    }
+
+    /* Small phones: nudge buttons bigger for tap targets */
+    @media (max-width: 420px) {
+      button { padding: 14px 22px; }
+    }
+
+    /* Visually hidden for screen readers */
+    .sr-only {
+      position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); border: 0;
+    }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <h1>Will you be my girlfriend? ❤️</h1>
+    
+
+    <div class="buttons">
+      <button class="yes" id="yesBtn" aria-label="Yes">Yes</button>
+      <button class="no" id="noBtn" aria-live="polite" aria-label="No">No</button>
+    </div>
+
+    <div class="gif-container" id="gifContainer" role="region" aria-label="Reactions"></div>
+    <span id="ariaUpdates" class="sr-only" aria-live="polite"></span>
+  </main>
+
+  <script>
+    const yesBtn = document.getElementById('yesBtn');
+    const noBtn = document.getElementById('noBtn');
+    const gifContainer = document.getElementById('gifContainer');
+    const ariaUpdates = document.getElementById('ariaUpdates');
+
+    // 👉 Replace each placeholder with your actual Tenor direct .gif URL
+    // RED (No): pick one at random on each click
+    const noGifs = [
+      "https://media1.tenor.com/m/A2Parx4u8jYAAAAd/donkey-kong-afraid-what.gif", // Donkey Kong Afraid
+      "https://media1.tenor.com/m/lgoZddkLJ9YAAAAC/donkey-kong-bananza.gif", // Donkey Kong Bananza
+      "https://media.tenor.com/KLucj3YGOmYAAAAi/no-donkey-kong.gif"  // No Donkey Kong Sticker
+    ];
+
+    // GREEN (Yes): show ALL at once
+    const yesGifs = [
+      "https://media1.tenor.com/m/ow42W99p1UcAAAAd/metroid-nintendo.gif", // Metroid thumbs up
+      "https://media1.tenor.com/m/AlrF3iZR7hQAAAAd/captain-falcon-gangnam-style.gif"  // Captain Falcon Gangnam Style
+    ];
+
+    // Phrases to cycle on the No button
+    const noPhrases = [
+      "Are you sure?",
+      "Are you sure you're sure?",
+      "Surely you're not sure?",
+      "Have a heart?",
+      "Look how sad you are making DK",
+      "PLEASE!"
+    ];
+    let phraseIndex = 0;
+
+    // Scaling behavior
+    let noScale = 1.0;
+    let yesScale = 1.0;
+    const MIN_NO_SCALE = 0.62;  // still readable on phones
+    const MAX_YES_SCALE = 1.65; // don't explode the layout
+    const NO_SHRINK_FACTOR = 0.88; // 12% smaller each red click
+    const YES_GROW_FACTOR = 1.08;  // 8% larger each red click
+
+    function renderScales() {
+      noBtn.style.transform = `scale(${noScale.toFixed(3)})`;
+      yesBtn.style.transform = `scale(${yesScale.toFixed(3)})`;
+    }
+
+    function showImages(urls) {
+      gifContainer.innerHTML = urls.map(u => `<img src="${u}" alt="Reaction gif" loading="lazy">`).join("");
+      gifContainer.style.display = 'flex';
+    }
+
+    yesBtn.addEventListener('click', () => {
+      // Reset button texts & scales to happy defaults
+      noBtn.textContent = 'No';
+      ariaUpdates.textContent = '';
+      noScale = 1.0;
+      yesScale = 1.0;
+      renderScales();
+
+      // Show all celebratory gifs
+      showImages(yesGifs);
+    });
+
+    noBtn.addEventListener('click', () => {
+      // Cycle phrase on the red button
+      noBtn.textContent = noPhrases[phraseIndex % noPhrases.length];
+      ariaUpdates.textContent = noBtn.textContent; // screen reader announcement
+      phraseIndex++;
+
+      // Shrink red (down to a minimum), grow green (up to a maximum)
+      noScale = Math.max(MIN_NO_SCALE, noScale * NO_SHRINK_FACTOR);
+      yesScale = Math.min(MAX_YES_SCALE, yesScale * YES_GROW_FACTOR);
+      renderScales();
+
+      // Show a random sad gif
+      const pick = noGifs[Math.floor(Math.random() * noGifs.length)];
+      showImages([pick]);
+    });
+
+    // First paint: ensure transforms are applied once
+    renderScales();
+  </script>
+</body>
+</html>
