@@ -67,8 +67,8 @@
     .gif-container {
       margin-top: 18px;
       display: none; /* visible when we have gifs */
-      flex-wrap: wrap;
-      justify-content: center;
+      flex-direction: column;
+      align-items: center;
       gap: 12px;
     }
 
@@ -80,12 +80,22 @@
       box-shadow: var(--shadow);
     }
 
-    /* Small phones: nudge buttons bigger for tap targets */
+    a.download-btn {
+      display: inline-block;
+      margin-top: 12px;
+      padding: 12px 20px;
+      background: #4CAF50;
+      color: white;
+      text-decoration: none;
+      border-radius: 8px;
+      font-size: 1.2rem;
+      font-weight: bold;
+    }
+
     @media (max-width: 420px) {
       button { padding: 14px 22px; }
     }
 
-    /* Visually hidden for screen readers */
     .sr-only {
       position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); border: 0;
     }
@@ -94,7 +104,6 @@
 <body>
   <main class="card">
     <h1>Will you be my girlfriend? ❤️</h1>
-    
 
     <div class="buttons">
       <button class="yes" id="yesBtn" aria-label="Yes">Yes</button>
@@ -111,7 +120,6 @@
     const gifContainer = document.getElementById('gifContainer');
     const ariaUpdates = document.getElementById('ariaUpdates');
 
-    // 👉 Replace each placeholder with your actual Tenor direct .gif URL
     // RED (No): pick one at random on each click
     const noGifs = [
       "https://media1.tenor.com/m/A2Parx4u8jYAAAAd/donkey-kong-afraid-what.gif", // Donkey Kong Afraid
@@ -119,11 +127,8 @@
       "https://media.tenor.com/KLucj3YGOmYAAAAi/no-donkey-kong.gif"  // No Donkey Kong Sticker
     ];
 
-    // GREEN (Yes): show ALL at once
-    const yesGifs = [
-      "https://media1.tenor.com/m/ow42W99p1UcAAAAd/metroid-nintendo.gif", // Metroid thumbs up
-      "https://media1.tenor.com/m/AlrF3iZR7hQAAAAd/captain-falcon-gangnam-style.gif"  // Captain Falcon Gangnam Style
-    ];
+    // GREEN (Yes): only Captain Falcon
+    const yesGif = "https://media1.tenor.com/m/AlrF3iZR7hQAAAAd/captain-falcon-gangnam-style.gif";
 
     // Phrases to cycle on the No button
     const noPhrases = [
@@ -136,53 +141,50 @@
     ];
     let phraseIndex = 0;
 
-    // Scaling behavior
     let noScale = 1.0;
     let yesScale = 1.0;
-    const MIN_NO_SCALE = 0.62;  // still readable on phones
-    const MAX_YES_SCALE = 1.65; // don't explode the layout
-    const NO_SHRINK_FACTOR = 0.88; // 12% smaller each red click
-    const YES_GROW_FACTOR = 1.08;  // 8% larger each red click
+    const MIN_NO_SCALE = 0.62;
+    const MAX_YES_SCALE = 1.65;
+    const NO_SHRINK_FACTOR = 0.88;
+    const YES_GROW_FACTOR = 1.08;
 
     function renderScales() {
       noBtn.style.transform = `scale(${noScale.toFixed(3)})`;
       yesBtn.style.transform = `scale(${yesScale.toFixed(3)})`;
     }
 
-    function showImages(urls) {
-      gifContainer.innerHTML = urls.map(u => `<img src="${u}" alt="Reaction gif" loading="lazy">`).join("");
+    function showContent(content) {
+      gifContainer.innerHTML = content;
       gifContainer.style.display = 'flex';
     }
 
     yesBtn.addEventListener('click', () => {
-      // Reset button texts & scales to happy defaults
       noBtn.textContent = 'No';
       ariaUpdates.textContent = '';
       noScale = 1.0;
       yesScale = 1.0;
       renderScales();
 
-      // Show all celebratory gifs
-      showImages(yesGifs);
+      // Show Captain Falcon + Download button
+      showContent(`
+        <img src="${yesGif}" alt="Captain Falcon dancing" loading="lazy">
+        <a href="The Cheekiest Monkey (1).pdf" download class="download-btn">Download Your Comic ❤️</a>
+      `);
     });
 
     noBtn.addEventListener('click', () => {
-      // Cycle phrase on the red button
       noBtn.textContent = noPhrases[phraseIndex % noPhrases.length];
-      ariaUpdates.textContent = noBtn.textContent; // screen reader announcement
+      ariaUpdates.textContent = noBtn.textContent;
       phraseIndex++;
 
-      // Shrink red (down to a minimum), grow green (up to a maximum)
       noScale = Math.max(MIN_NO_SCALE, noScale * NO_SHRINK_FACTOR);
       yesScale = Math.min(MAX_YES_SCALE, yesScale * YES_GROW_FACTOR);
       renderScales();
 
-      // Show a random sad gif
       const pick = noGifs[Math.floor(Math.random() * noGifs.length)];
-      showImages([pick]);
+      showContent(`<img src="${pick}" alt="Sad reaction" loading="lazy">`);
     });
 
-    // First paint: ensure transforms are applied once
     renderScales();
   </script>
 </body>
